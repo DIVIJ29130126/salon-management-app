@@ -3,13 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const body = await request.json();
 
     const appointment = await prisma.appointment.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!appointment) {
@@ -28,7 +29,7 @@ export async function PATCH(
     }
 
     const updated = await prisma.appointment.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: body.status },
       include: {
         stylist: true,

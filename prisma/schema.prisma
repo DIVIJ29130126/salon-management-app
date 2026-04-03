@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Salon {
+  id        String     @id @default(cuid())
+  name      String
+  address   String
+  phone     String
+  email     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  operatingHours OperatingHour[]
+  stylists       Stylist[]
+  services       Service[]
+  appointments   Appointment[]
+
+  @@map("salons")
+}
+
+model Stylist {
+  id           String   @id @default(cuid())
+  salonId      String
+  name         String
+  email        String?
+  phone        String?
+  specialties  String   // JSON stringified array or comma-separated
+  photoUrl     String?
+  bio          String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  salon        Salon         @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  timeSlots    TimeSlot[]
+
+  @@index([salonId])
+  @@map("stylists")
+}
+
+model Service {
+  id           String   @id @default(cuid())
+  salonId      String
+  name         String
+  description  String?
+  durationMins Int      // Duration in minutes (30, 45, 60, etc.)
+  price        Float
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  salon        Salon         @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([salonId])
+  @@map("services")
+}
+
+model OperatingHour {
+  id        String   @id @default(cuid())
+  salonId   String
+  dayOfWeek Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  openTime  String   // HH:MM format
+  closeTime String   // HH:MM format
+  isClosed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salon Salon @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@unique([salonId, dayOfWeek])
+  @@index([salonId])
+  @@map("operating_hours")
+}
+
+model TimeSlot {
+  id           String   @id @default(cuid())
+  stylistId    String
+  date         DateTime
+  startTime    String   // HH:MM format
+  endTime      String   // HH:MM format
+  durationMins Int      // Duration in minutes
+  isAvailable  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  stylist      Stylist      @relation(fields: [stylistId], references: [id], onDelete: Cascade)
+  appointment  Appointment?
+
+  @@index([stylistId])
+  @@index([date])
+  @@map("time_slots")
+}
+
+model Appointment {
+  id           String   @id @default(cuid())
+  salonId      String
+  stylistId    String
+  serviceId    String
+  timeSlotId   String   @unique
+  customerName String
+  customerPhone String
+  customerEmail String?
+  notes        String?
+  status       String   @default("confirmed")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  salon    Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  stylist  Stylist   @relation(fields: [stylistId], references: [id], onDelete: Cascade)
+  service  Service   @relation(fields: [serviceId], references: [id])
+  timeSlot TimeSlot  @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+
+  @@index([salonId])
+  @@index([stylistId])
+  @@index([timeSlotId])
+  @@map("appointments")
+}
+
+model WalkIn {
+  id           String   @id @default(cuid())
+  salonId      String
+  stylistId    String
+  customerName String
+  serviceName  String
+  price        Float
+  duration     Int
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([salonId])
+  @@index([stylistId])
+  @@map("walk_ins")
+}
